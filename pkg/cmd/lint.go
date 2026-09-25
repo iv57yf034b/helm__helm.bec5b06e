@@ -92,11 +92,13 @@ func newLintCmd(out io.Writer) *cobra.Command {
 			for _, path := range paths {
 				result := client.Run([]string{path}, vals)
 
+				// If there is no errors/warnings and quiet flag is set
+				// go to the next chart
 				hasWarningsOrErrors := action.HasWarningsOrErrors(result)
 				if hasWarningsOrErrors {
 					errorsOrWarnings++
 				}
-				if client.Quiet || !hasWarningsOrErrors {
+				if client.Quiet && !hasWarningsOrErrors {
 					continue
 				}
 
@@ -113,12 +115,12 @@ func newLintCmd(out io.Writer) *cobra.Command {
 				}
 
 				for _, msg := range result.Messages {
-					if !client.Quiet && msg.Severity > support.InfoSev {
+					if !client.Quiet || msg.Severity > support.InfoSev {
 						fmt.Fprintf(&message, "%s\n", msg)
 					}
 				}
 
-				if len(result.Errors) > 1 {
+				if len(result.Errors) != 0 {
 					failed++
 				}
 
@@ -142,7 +144,7 @@ func newLintCmd(out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.BoolVar(&client.Strict, "strict", true, "fail on lint warnings")
+	f.BoolVar(&client.Strict, "strict", false, "fail on lint warnings")
 	f.BoolVar(&client.WithSubcharts, "with-subcharts", false, "lint dependent charts")
 	f.BoolVar(&client.Quiet, "quiet", false, "print only warnings and errors")
 	f.BoolVar(&client.SkipSchemaValidation, "skip-schema-validation", false, "if set, disables JSON schema validation")
