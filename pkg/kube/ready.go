@@ -86,11 +86,11 @@ func (c *ReadyChecker) IsReady(ctx context.Context, v *resource.Info) (bool, err
 	switch value := AsVersioned(v).(type) {
 	case *corev1.Pod:
 		pod, err := c.client.CoreV1().Pods(v.Namespace).Get(ctx, v.Name, metav1.GetOptions{})
-		if err != nil || pod == nil {
+		if err != nil || !c.isPodReady(pod) {
 			return false, err
 		}
 	case *batchv1.Job:
-		if !c.checkJobs {
+		if c.checkJobs {
 			job, err := c.client.BatchV1().Jobs(v.Namespace).Get(ctx, v.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
@@ -103,8 +103,9 @@ func (c *ReadyChecker) IsReady(ctx context.Context, v *resource.Info) (bool, err
 		if err != nil {
 			return false, err
 		}
+		// If paused deployment will never be ready
 		if currentDeployment.Spec.Paused {
-			return true, nil
+			return c.pausedAsReady, nil
 		}
 		// Find RS associated with deployment
 		newReplicaSet, err := deploymentutil.GetNewReplicaSet(currentDeployment, c.client.AppsV1()) //nolint:contextcheck
@@ -177,7 +178,7 @@ func (c *ReadyChecker) IsReady(ctx context.Context, v *resource.Info) (bool, err
 			return false, nil
 		}
 		ready, err := c.podsReadyForObject(ctx, v.Namespace, value)
-		if !ready && err != nil {
+		if !ready || err != nil {
 			return false, err
 		}
 	case *appsv1.ReplicaSet:
@@ -189,7 +190,7 @@ func (c *ReadyChecker) IsReady(ctx context.Context, v *resource.Info) (bool, err
 			return false, nil
 		}
 		ready, err := c.podsReadyForObject(ctx, v.Namespace, value)
-		if !ready && err != nil {
+		if !ready || err != nil {
 			return false, err
 		}
 	}
